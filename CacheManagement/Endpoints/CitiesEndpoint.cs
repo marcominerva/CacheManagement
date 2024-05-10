@@ -1,6 +1,8 @@
 ﻿using CacheManagement.DataAccessLayer;
 using CacheManagement.Models;
 using CacheManagement.Models.Requests;
+using CacheManagement.Notifications.Events;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CacheManagement.Endpoints;
@@ -72,7 +74,7 @@ public class CitiesEndpoint : IEndpointRouteHandlerBuilder
         return TypedResults.Created(url);
     }
 
-    private static async Task<IResult> UpdateAsync(Guid id, SaveCityRequest request, ApplicationDbContext dbContext)
+    private static async Task<IResult> UpdateAsync(Guid id, SaveCityRequest request, ApplicationDbContext dbContext, IPublisher publisher)
     {
         var dbCity = await dbContext.Cities.FirstOrDefaultAsync(p => p.Id == id);
         if (dbCity is null)
@@ -83,6 +85,8 @@ public class CitiesEndpoint : IEndpointRouteHandlerBuilder
         dbCity.Name = request.Name;
 
         await dbContext.SaveChangesAsync();
+
+        await publisher.Publish(new CityUpdated(id));
 
         return TypedResults.NoContent();
     }
